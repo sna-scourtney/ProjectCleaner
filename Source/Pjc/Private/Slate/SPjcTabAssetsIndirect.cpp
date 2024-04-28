@@ -18,98 +18,32 @@ void SPjcTabAssetsIndirect::Construct(const FArguments& InArgs)
 
 	Cmds->MapAction(
 		FPjcCmds::Get().Refresh,
-		FExecuteAction::CreateLambda([&]()
-		{
-			ListUpdateData();
-			ListUpdateView();
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::OnRefresh)
 	);
 
 	Cmds->MapAction(
 		FPjcCmds::Get().OpenViewerSizeMap,
-		FExecuteAction::CreateLambda([&]()
-		{
-			const auto SelectedItems = ListView->GetSelectedItems();
-
-			TArray<FAssetData> Assets;
-			Assets.Reserve(SelectedItems.Num());
-
-			for (const auto& SelectedItem : SelectedItems)
-			{
-				if (!SelectedItem.IsValid()) continue;
-
-				Assets.Emplace(SelectedItem->Asset);
-			}
-
-			UPjcSubsystem::OpenSizeMapViewer(Assets);
-		}),
-		FCanExecuteAction::CreateLambda([&]()
-		{
-			return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::OnOpenSizeMap),
+		FCanExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::AnyAssetSelected)
 	);
 
 	Cmds->MapAction(
 		FPjcCmds::Get().OpenViewerReference,
-		FExecuteAction::CreateLambda([&]()
-		{
-			const auto SelectedItems = ListView->GetSelectedItems();
-
-			TArray<FAssetData> Assets;
-			Assets.Reserve(SelectedItems.Num());
-
-			for (const auto& SelectedItem : SelectedItems)
-			{
-				if (!SelectedItem.IsValid()) continue;
-
-				Assets.Emplace(SelectedItem->Asset);
-			}
-
-			UPjcSubsystem::OpenReferenceViewer(Assets);
-		}),
-		FCanExecuteAction::CreateLambda([&]()
-		{
-			return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::OnOpenReferenceViewer),
+		FCanExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::AnyAssetSelected)
 	);
 
 	Cmds->MapAction(
 		FPjcCmds::Get().OpenViewerAssetsAudit,
-		FExecuteAction::CreateLambda([&]()
-		{
-			const auto SelectedItems = ListView->GetSelectedItems();
-
-			TArray<FAssetData> Assets;
-			Assets.Reserve(SelectedItems.Num());
-
-			for (const auto& SelectedItem : SelectedItems)
-			{
-				if (!SelectedItem.IsValid()) continue;
-
-				Assets.Emplace(SelectedItem->Asset);
-			}
-
-			UPjcSubsystem::OpenAssetAuditViewer(Assets);
-		}),
-		FCanExecuteAction::CreateLambda([&]()
-		{
-			return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::OnOpenAssetAudit),
+		FCanExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::AnyAssetSelected)
 	);
 
 	Cmds->MapAction(
 		FPjcCmds::Get().ClearSelection,
-		FExecuteAction::CreateLambda([&]()
-		{
-			ListView->ClearSelection();
-			ListView->ClearHighlightedItems();
-		}),
-		FCanExecuteAction::CreateLambda([&]()
-		{
-			return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::OnClearSelection),
+		FCanExecuteAction::CreateRaw(this, &SPjcTabAssetsIndirect::AnyAssetSelected)
 	);
-
 
 	SAssignNew(ListView, SListView<TSharedPtr<FPjcAssetIndirectInfo>>)
 	.ListItemsSource(&ItemsFiltered)
@@ -217,59 +151,59 @@ TSharedRef<SWidget> SPjcTabAssetsIndirect::CreateToolbar() const
 TSharedRef<SHeaderRow> SPjcTabAssetsIndirect::GetHeaderRow()
 {
 	return
-		SNew(SHeaderRow)
-		+ SHeaderRow::Column(TEXT("AssetName"))
-		  .HAlignHeader(HAlign_Center)
-		  .VAlignHeader(VAlign_Center)
-		  .FillWidth(0.1f)
-		  .HeaderContentPadding(FMargin{5.0f})
-		  .OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Asset Name")))
-			.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
-			.Font(FPjcStyles::GetFont("Light", 10.0f))
-			.ToolTipText(FText::FromString(TEXT("Indirect asset name")))
-		]
-		+ SHeaderRow::Column(TEXT("AssetPath"))
-		  .HAlignHeader(HAlign_Center)
-		  .VAlignHeader(VAlign_Center)
-		  .FillWidth(0.4f)
-		  .HeaderContentPadding(FMargin{5.0f})
-		  .OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Asset Path")))
-			.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
-			.Font(FPjcStyles::GetFont("Light", 10.0f))
-			.ToolTipText(FText::FromString(TEXT("Indirect asset path in content browser")))
-		]
-		+ SHeaderRow::Column(TEXT("FilePath"))
-		  .HAlignHeader(HAlign_Center)
-		  .VAlignHeader(VAlign_Center)
-		  .FillWidth(0.4f)
-		  .HeaderContentPadding(FMargin{5.0f})
-		  .OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(TEXT("File Path")))
-			.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
-			.Font(FPjcStyles::GetFont("Light", 10.0f))
-			.ToolTipText(FText::FromString(TEXT("Absolute file path where asset is used.")))
-		]
-		+ SHeaderRow::Column(TEXT("FileLine"))
-		  .HAlignHeader(HAlign_Center)
-		  .VAlignHeader(VAlign_Center)
-		  .FillWidth(0.1f)
-		  .HeaderContentPadding(FMargin{5.0f})
-		  .OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(TEXT("File Line")))
-			.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
-			.Font(FPjcStyles::GetFont("Light", 10.0f))
-			.ToolTipText(FText::FromString(TEXT("File line number where asset is used")))
-		];
+			SNew(SHeaderRow)
+			+ SHeaderRow::Column(TEXT("AssetName"))
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.FillWidth(0.1f)
+			.HeaderContentPadding(FMargin{5.0f})
+			.OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Asset Name")))
+				.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
+				.Font(FPjcStyles::GetFont("Light", 10.0f))
+				.ToolTipText(FText::FromString(TEXT("Indirect asset name")))
+			]
+			+ SHeaderRow::Column(TEXT("AssetPath"))
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.FillWidth(0.4f)
+			.HeaderContentPadding(FMargin{5.0f})
+			.OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Asset Path")))
+				.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
+				.Font(FPjcStyles::GetFont("Light", 10.0f))
+				.ToolTipText(FText::FromString(TEXT("Indirect asset path in content browser")))
+			]
+			+ SHeaderRow::Column(TEXT("FilePath"))
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.FillWidth(0.4f)
+			.HeaderContentPadding(FMargin{5.0f})
+			.OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(TEXT("File Path")))
+				.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
+				.Font(FPjcStyles::GetFont("Light", 10.0f))
+				.ToolTipText(FText::FromString(TEXT("Absolute file path where asset is used.")))
+			]
+			+ SHeaderRow::Column(TEXT("FileLine"))
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.FillWidth(0.1f)
+			.HeaderContentPadding(FMargin{5.0f})
+			.OnSort_Raw(this, &SPjcTabAssetsIndirect::OnListSort)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(TEXT("File Line")))
+				.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
+				.Font(FPjcStyles::GetFont("Light", 10.0f))
+				.ToolTipText(FText::FromString(TEXT("File line number where asset is used")))
+			];
 }
 
 TSharedRef<ITableRow> SPjcTabAssetsIndirect::OnGenerateRow(TSharedPtr<FPjcAssetIndirectInfo> Item, const TSharedRef<STableViewBase>& OwnerTable) const
@@ -348,7 +282,9 @@ void SPjcTabAssetsIndirect::OnListSort(EColumnSortPriority::Type SortPriority, c
 	{
 		SortListItems(ColumnSortModeAssetName, [&](const TSharedPtr<FPjcAssetIndirectInfo>& Item1, const TSharedPtr<FPjcAssetIndirectInfo>& Item2)
 		{
-			return ColumnSortModeAssetName == EColumnSortMode::Ascending ? Item1->Asset.AssetName.ToString() < Item2->Asset.AssetName.ToString() : Item1->Asset.AssetName.ToString() > Item2->Asset.AssetName.ToString();
+			return ColumnSortModeAssetName == EColumnSortMode::Ascending
+				       ? Item1->Asset.AssetName.ToString() < Item2->Asset.AssetName.ToString()
+				       : Item1->Asset.AssetName.ToString() > Item2->Asset.AssetName.ToString();
 		});
 	}
 
@@ -356,7 +292,9 @@ void SPjcTabAssetsIndirect::OnListSort(EColumnSortPriority::Type SortPriority, c
 	{
 		SortListItems(ColumnSortModeAssetPath, [&](const TSharedPtr<FPjcAssetIndirectInfo>& Item1, const TSharedPtr<FPjcAssetIndirectInfo>& Item2)
 		{
-			return ColumnSortModeAssetPath == EColumnSortMode::Ascending ? Item1->Asset.PackagePath.ToString() < Item2->Asset.PackagePath.ToString() : Item1->Asset.PackagePath.ToString() > Item2->Asset.PackagePath.ToString();
+			return ColumnSortModeAssetPath == EColumnSortMode::Ascending
+				       ? Item1->Asset.PackagePath.ToString() < Item2->Asset.PackagePath.ToString()
+				       : Item1->Asset.PackagePath.ToString() > Item2->Asset.PackagePath.ToString();
 		});
 	}
 
@@ -394,4 +332,72 @@ void SPjcTabAssetsIndirect::OnSearchTextCommitted(const FText& InText, ETextComm
 int32 SPjcTabAssetsIndirect::GetWidgetIndex() const
 {
 	return ItemsAll.Num() == 0 ? PjcConstants::WidgetIndexIdle : PjcConstants::WidgetIndexWorking;
+}
+
+void SPjcTabAssetsIndirect::OnRefresh()
+{
+	ListUpdateData();
+	ListUpdateView();
+}
+
+void SPjcTabAssetsIndirect::OnOpenSizeMap() const
+{
+	const auto SelectedItems = ListView->GetSelectedItems();
+
+	TArray<FAssetData> Assets;
+	Assets.Reserve(SelectedItems.Num());
+
+	for (const auto& SelectedItem : SelectedItems)
+	{
+		if (!SelectedItem.IsValid()) continue;
+
+		Assets.Emplace(SelectedItem->Asset);
+	}
+
+	UPjcSubsystem::OpenSizeMapViewer(Assets);
+}
+
+void SPjcTabAssetsIndirect::OnOpenReferenceViewer() const
+{
+	const auto SelectedItems = ListView->GetSelectedItems();
+
+	TArray<FAssetData> Assets;
+	Assets.Reserve(SelectedItems.Num());
+
+	for (const auto& SelectedItem : SelectedItems)
+	{
+		if (!SelectedItem.IsValid()) continue;
+
+		Assets.Emplace(SelectedItem->Asset);
+	}
+
+	UPjcSubsystem::OpenReferenceViewer(Assets);
+}
+
+void SPjcTabAssetsIndirect::OnOpenAssetAudit() const
+{
+	const auto SelectedItems = ListView->GetSelectedItems();
+
+	TArray<FAssetData> Assets;
+	Assets.Reserve(SelectedItems.Num());
+
+	for (const auto& SelectedItem : SelectedItems)
+	{
+		if (!SelectedItem.IsValid()) continue;
+
+		Assets.Emplace(SelectedItem->Asset);
+	}
+
+	UPjcSubsystem::OpenAssetAuditViewer(Assets);
+}
+
+void SPjcTabAssetsIndirect::OnClearSelection() const
+{
+	ListView->ClearSelection();
+	ListView->ClearHighlightedItems();
+}
+
+bool SPjcTabAssetsIndirect::AnyAssetSelected() const
+{
+	return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
 }
