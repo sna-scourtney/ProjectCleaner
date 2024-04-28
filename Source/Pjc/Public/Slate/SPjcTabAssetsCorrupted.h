@@ -29,6 +29,11 @@ protected:
 	int32 GetWidgetIndex() const;
 
 private:
+	void OnRefresh();
+	void OnDelete();
+	void OnClearSelection() const;
+	bool AnyAssetSelected() const;
+
 	FText SearchText;
 	int32 NumFilesTotal = 0;
 	int64 SizeFilesTotal = 0;

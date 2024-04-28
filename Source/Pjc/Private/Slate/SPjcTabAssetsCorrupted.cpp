@@ -18,66 +18,19 @@ void SPjcTabAssetsCorrupted::Construct(const FArguments& InArgs)
 
 	Cmds->MapAction(
 		FPjcCmds::Get().Refresh,
-		FExecuteAction::CreateLambda([&]()
-		{
-			ListUpdateData();
-			ListUpdateView();
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsCorrupted::OnRefresh)
 	);
 
 	Cmds->MapAction(
 		FPjcCmds::Get().Delete,
-		FExecuteAction::CreateLambda([&]()
-		{
-			const FText Title = FText::FromString(TEXT("Delete Corrupted Asset Files"));
-			const FText Context = FText::FromString(TEXT("Are you sure you want to delete selected files?"));
-
-			const EAppReturnType::Type ReturnType = FMessageDialog::Open(EAppMsgType::YesNo, Context, &Title);
-			if (ReturnType == EAppReturnType::Cancel || ReturnType == EAppReturnType::No) return;
-
-			const auto ItemsSelected = ListView->GetSelectedItems();
-			const int32 NumTotal = ItemsSelected.Num();
-			int32 NumDeleted = 0;
-
-			for (const auto& Item : ItemsSelected)
-			{
-				if (!Item.IsValid()) continue;
-				if (!IFileManager::Get().Delete(*Item->FilePath)) continue;
-
-				++NumDeleted;
-			}
-
-			const FString Msg = FString::Printf(TEXT("Deleted %d of %d files"), NumDeleted, NumTotal);
-
-			if (NumDeleted == NumTotal)
-			{
-				UPjcSubsystem::ShowNotification(Msg, SNotificationItem::CS_Success, 5.0f);
-			}
-			else
-			{
-				UPjcSubsystem::ShowNotificationWithOutputLog(Msg, SNotificationItem::CS_Fail, 5.0f);
-			}
-
-			ListUpdateData();
-			ListUpdateView();
-		}),
-		FCanExecuteAction::CreateLambda([&]()
-		{
-			return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsCorrupted::OnDelete),
+		FCanExecuteAction::CreateRaw(this, &SPjcTabAssetsCorrupted::AnyAssetSelected)
 	);
 
 	Cmds->MapAction(
 		FPjcCmds::Get().ClearSelection,
-		FExecuteAction::CreateLambda([&]()
-		{
-			ListView->ClearSelection();
-			ListView->ClearHighlightedItems();
-		}),
-		FCanExecuteAction::CreateLambda([&]()
-		{
-			return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
-		})
+		FExecuteAction::CreateRaw(this, &SPjcTabAssetsCorrupted::OnClearSelection),
+		FCanExecuteAction::CreateRaw(this, &SPjcTabAssetsCorrupted::AnyAssetSelected)
 	);
 
 	SAssignNew(ListView, SListView<TSharedPtr<FPjcCorruptedAssetItem>>)
@@ -323,12 +276,12 @@ TSharedRef<SHeaderRow> SPjcTabAssetsCorrupted::GetListHeaderRow()
 	return
 		SNew(SHeaderRow)
 		+ SHeaderRow::Column("FilePath")
-		  .FillWidth(0.6f)
-		  .HAlignCell(HAlign_Left)
-		  .VAlignCell(VAlign_Center)
-		  .HAlignHeader(HAlign_Center)
-		  .HeaderContentPadding(HeaderMargin)
-		  .OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
+		.FillWidth(0.6f)
+		.HAlignCell(HAlign_Left)
+		.VAlignCell(VAlign_Center)
+		.HAlignHeader(HAlign_Center)
+		.HeaderContentPadding(HeaderMargin)
+		.OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(TEXT("FilePath")))
@@ -336,12 +289,12 @@ TSharedRef<SHeaderRow> SPjcTabAssetsCorrupted::GetListHeaderRow()
 			.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
 		]
 		+ SHeaderRow::Column("FileName")
-		  .FillWidth(0.2f)
-		  .HAlignCell(HAlign_Center)
-		  .VAlignCell(VAlign_Center)
-		  .HAlignHeader(HAlign_Center)
-		  .HeaderContentPadding(HeaderMargin)
-		  .OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
+		.FillWidth(0.2f)
+		.HAlignCell(HAlign_Center)
+		.VAlignCell(VAlign_Center)
+		.HAlignHeader(HAlign_Center)
+		.HeaderContentPadding(HeaderMargin)
+		.OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(TEXT("FileName")))
@@ -349,12 +302,12 @@ TSharedRef<SHeaderRow> SPjcTabAssetsCorrupted::GetListHeaderRow()
 			.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
 		]
 		+ SHeaderRow::Column("FileExt")
-		  .FillWidth(0.1f)
-		  .HAlignCell(HAlign_Center)
-		  .VAlignCell(VAlign_Center)
-		  .HAlignHeader(HAlign_Center)
-		  .HeaderContentPadding(HeaderMargin)
-		  .OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
+		.FillWidth(0.1f)
+		.HAlignCell(HAlign_Center)
+		.VAlignCell(VAlign_Center)
+		.HAlignHeader(HAlign_Center)
+		.HeaderContentPadding(HeaderMargin)
+		.OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(TEXT("FileExtension")))
@@ -362,12 +315,12 @@ TSharedRef<SHeaderRow> SPjcTabAssetsCorrupted::GetListHeaderRow()
 			.ColorAndOpacity(FPjcStyles::Get().GetSlateColor("ProjectCleaner.Color.Green"))
 		]
 		+ SHeaderRow::Column("FileSize")
-		  .FillWidth(0.1f)
-		  .HAlignCell(HAlign_Center)
-		  .VAlignCell(VAlign_Center)
-		  .HAlignHeader(HAlign_Center)
-		  .HeaderContentPadding(HeaderMargin)
-		  .OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
+		.FillWidth(0.1f)
+		.HAlignCell(HAlign_Center)
+		.VAlignCell(VAlign_Center)
+		.HAlignHeader(HAlign_Center)
+		.HeaderContentPadding(HeaderMargin)
+		.OnSort_Raw(this, &SPjcTabAssetsCorrupted::OnListSort)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(TEXT("FileSize")))
@@ -423,4 +376,56 @@ FText SPjcTabAssetsCorrupted::GetTxtSummary() const
 int32 SPjcTabAssetsCorrupted::GetWidgetIndex() const
 {
 	return ItemsAll.Num() == 0 ? PjcConstants::WidgetIndexIdle : PjcConstants::WidgetIndexWorking;
+}
+
+void SPjcTabAssetsCorrupted::OnRefresh()
+{
+	ListUpdateData();
+	ListUpdateView();
+}
+
+void SPjcTabAssetsCorrupted::OnDelete()
+{
+	const FText Title = FText::FromString(TEXT("Delete Corrupted Asset Files"));
+	const FText Context = FText::FromString(TEXT("Are you sure you want to delete selected files?"));
+
+	const EAppReturnType::Type ReturnType = FMessageDialog::Open(EAppMsgType::YesNo, Context, &Title);
+	if (ReturnType == EAppReturnType::Cancel || ReturnType == EAppReturnType::No) return;
+
+	const auto ItemsSelected = ListView->GetSelectedItems();
+	const int32 NumTotal = ItemsSelected.Num();
+	int32 NumDeleted = 0;
+
+	for (const auto& Item : ItemsSelected)
+	{
+		if (!Item.IsValid()) continue;
+		if (!IFileManager::Get().Delete(*Item->FilePath)) continue;
+
+		++NumDeleted;
+	}
+
+	const FString Msg = FString::Printf(TEXT("Deleted %d of %d files"), NumDeleted, NumTotal);
+
+	if (NumDeleted == NumTotal)
+	{
+		UPjcSubsystem::ShowNotification(Msg, SNotificationItem::CS_Success, 5.0f);
+	}
+	else
+	{
+		UPjcSubsystem::ShowNotificationWithOutputLog(Msg, SNotificationItem::CS_Fail, 5.0f);
+	}
+
+	ListUpdateData();
+	ListUpdateView();
+}
+
+void SPjcTabAssetsCorrupted::OnClearSelection() const
+{
+	ListView->ClearSelection();
+	ListView->ClearHighlightedItems();
+}
+
+bool SPjcTabAssetsCorrupted::AnyAssetSelected() const
+{
+	return ListView.IsValid() && ListView->GetSelectedItems().Num() > 0;
 }
