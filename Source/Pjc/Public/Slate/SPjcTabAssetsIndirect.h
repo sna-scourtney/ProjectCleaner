@@ -29,6 +29,13 @@ protected:
 	int32 GetWidgetIndex() const;
 
 private:
+	void OnRefresh();
+	void OnOpenSizeMap() const;
+	void OnOpenReferenceViewer() const;
+	void OnOpenAssetAudit() const;
+	void OnClearSelection() const;
+	bool AnyAssetSelected() const;
+
 	TArray<TSharedPtr<FPjcAssetIndirectInfo>> ItemsAll;
 	TArray<TSharedPtr<FPjcAssetIndirectInfo>> ItemsFiltered;
 	TSharedPtr<SListView<TSharedPtr<FPjcAssetIndirectInfo>>> ListView;
