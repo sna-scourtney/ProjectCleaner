@@ -46,6 +46,14 @@ private:
 	TArray<TSharedPtr<FPjcFileExternalItem>> ItemsFiltered;
 	TSharedPtr<SListView<TSharedPtr<FPjcFileExternalItem>>> ListView;
 
+	void OnRefresh();
+	void OnDelete();
+	void OnExclude();
+	void OnExcludeByExt();
+	void OnClearSelection() const;
+
+	bool CanExecuteAction() const;
+
 	EColumnSortMode::Type ColumnSortModeFilePath = EColumnSortMode::None;
 	EColumnSortMode::Type ColumnSortModeFileName = EColumnSortMode::None;
 	EColumnSortMode::Type ColumnSortModeFileExt = EColumnSortMode::None;
