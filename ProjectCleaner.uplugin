@@ -22,7 +22,8 @@
 			"LoadingPhase": "PostDefault",
 			"WhitelistPlatforms": [
 				"Win64",
-				"Linux"
+				"Linux",
+                                "Mac"
 			]
 		}
 	],
