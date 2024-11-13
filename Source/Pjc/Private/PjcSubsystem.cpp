@@ -1477,7 +1477,7 @@ void UPjcSubsystem::GetAssetsDependencies(TSet<FAssetData>& Assets)
 		TArray<FName> Deps;
 		while (Stack.Num() > 0)
 		{
-			const auto CurrentPackageName = Stack.Pop(false);
+			const auto CurrentPackageName = Stack.Pop(EAllowShrinking::No);
 			Deps.Reset();
 
 			GetModuleAssetRegistry().Get().GetDependencies(CurrentPackageName, Deps);
@@ -1485,7 +1485,7 @@ void UPjcSubsystem::GetAssetsDependencies(TSet<FAssetData>& Assets)
 			Deps.RemoveAllSwap([&](const FName& Dep)
 			{
 				return !Dep.ToString().StartsWith(*PjcConstants::PathRoot.ToString());
-			}, false);
+			}, EAllowShrinking::No);
 
 			for (const auto& Dep : Deps)
 			{
@@ -1673,7 +1673,7 @@ void UPjcSubsystem::BucketFill(TArray<FAssetData>& AssetsUnused, TArray<FAssetDa
 		{
 			return !Ref.ToString().StartsWith(PjcConstants::PathRoot.ToString()) || Ref.IsEqual(
 				CurrentAsset.PackageName);
-		}, false);
+		}, EAllowShrinking::No);
 		Refs.Shrink();
 
 		if (Refs.Num() == 0)
@@ -1703,16 +1703,20 @@ void UPjcSubsystem::BucketFill(TArray<FAssetData>& AssetsUnused, TArray<FAssetDa
 
 	while (Stack.Num() > 0)
 	{
-		const FAssetData Current = Stack.Pop(false);
+		const FAssetData Current = Stack.Pop(EAllowShrinking::No);
 		Bucket.AddUnique(Current);
 		AssetsUnused.Remove(Current);
 
 		GetModuleAssetRegistry().Get().GetReferencers(Current.PackageName, Refs);
 
+		// Refs.RemoveAllSwap([&](const FName& Ref)
+		// {
+		// 	return !Ref.ToString().StartsWith(PjcConstants::PathRoot.ToString()) || Ref.IsEqual(Current.PackageName);
+		// }, false);
 		Refs.RemoveAllSwap([&](const FName& Ref)
 		{
 			return !Ref.ToString().StartsWith(PjcConstants::PathRoot.ToString()) || Ref.IsEqual(Current.PackageName);
-		}, false);
+		}, EAllowShrinking::No);
 		Refs.Shrink();
 
 		for (const auto& Ref : Refs)

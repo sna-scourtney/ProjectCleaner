@@ -736,7 +736,7 @@ void SPjcTabAssetsUnused::OnAssetsInclude()
 		ExcludeSettings->ExcludedAssets.RemoveAllSwap([&](const TSoftObjectPtr<UObject>& ExcludedAsset)
 		{
 			return ExcludedAsset.LoadSynchronous() && ExcludedAsset.ToSoftObjectPath() == Asset.ToSoftObjectPath();
-		}, false);
+		}, EAllowShrinking::No);
 	}
 
 	if (bFilterConflicts)
@@ -776,7 +776,7 @@ void SPjcTabAssetsUnused::OnAssetsIncludeByClass()
 		ExcludeSettings->ExcludedClasses.RemoveAllSwap([&](const TSoftClassPtr<UObject>& ExcludedAsset)
 		{
 			return ExcludedAsset.LoadSynchronous() && ExcludedAsset.Get()->GetClassPathName() == UPjcSubsystem::GetAssetExactClassName(Asset);
-		}, false);
+		}, EAllowShrinking::No);
 	}
 
 	if (bFilterConflicts)
@@ -1127,7 +1127,7 @@ void SPjcTabAssetsUnused::UpdateTreeView()
 
 	while (Stack.Num() > 0)
 	{
-		const auto CurrentItem = Stack.Pop(false);
+		const auto CurrentItem = Stack.Pop(EAllowShrinking::No);
 
 		TreeListView->SetItemExpansion(CurrentItem, CurrentItem->bIsExpanded);
 
@@ -1358,7 +1358,7 @@ void SPjcTabAssetsUnused::SortTreeItems(const bool UpdateSortingOrder)
 
 		while (Stack.Num() > 0)
 		{
-			const auto& CurrentItem = Stack.Pop(false);
+			const auto& CurrentItem = Stack.Pop(EAllowShrinking::No);
 			if (!CurrentItem.IsValid()) continue;
 
 			TArray<TSharedPtr<FPjcTreeItem>>& SubItems = CurrentItem->SubItems;
@@ -1426,7 +1426,7 @@ void SPjcTabAssetsUnused::ChangeItemExpansionRecursive(const TSharedPtr<FPjcTree
 
 	while (Stack.Num() > 0)
 	{
-		const auto CurrentItem = Stack.Pop(false);
+		const auto CurrentItem = Stack.Pop(EAllowShrinking::No);
 
 		CurrentItem->bIsExpanded = bExpansion;
 		TreeListView->SetItemExpansion(CurrentItem, CurrentItem->bIsExpanded);
@@ -2067,7 +2067,7 @@ void SPjcTabAssetsUnused::UpdateMapInfo(TMap<FString, int32>& MapNum, TMap<FStri
 		int32 LastSlashIndex;
 		if (CurrentPath.FindLastChar('/', LastSlashIndex))
 		{
-			CurrentPath.LeftInline(LastSlashIndex, false);
+			CurrentPath.LeftInline(LastSlashIndex, EAllowShrinking::No);
 		}
 		else
 		{

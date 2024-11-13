@@ -541,7 +541,7 @@ void SPjcTabFilesExternal::OnDelete()
 				Path.RemoveFromStart(FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()));
 
 				return InFile.FilePath.Equals(Path);
-			}, false);
+			}, EAllowShrinking::No);
 		}
 
 		++NumDeleted;
